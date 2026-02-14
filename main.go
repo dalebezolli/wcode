@@ -48,8 +48,10 @@ func main() {
 
 	display := NewDisplay()
 	display.Clear()
+	display.Flush()
 	selection := getSelection(display, input, directories)
 	display.Clear()
+	display.Flush()
 
 	err = saveSelectionToDisk(selection)
 	if err != nil {
@@ -109,11 +111,14 @@ func getSelection(display *Display, input *Input, directories []string) string {
 
 			display.AddModifier(fmt.Sprintf("\x1b[2%vm", selectedMod))
 			display.DisplayAt(path, 2, 2+i)
+			display.ClearModifier()
 			display.AddModifier(fmt.Sprintf("\x1b[%vm", selectedMod))
 			display.DisplayAt(project, len(path)+2, 2+i)
+			display.ClearModifier()
 		}
 
 		display.MoveCursorAt(3+len(input.GetValue()), display.Height-1)
+		display.Flush()
 		userInput, bytes, status := input.Read(&selection)
 
 		selection = min(max(selection, 0), len(queriedDirectories)-1)
@@ -125,6 +130,8 @@ func getSelection(display *Display, input *Input, directories []string) string {
 		display.DisplayAt(userInput, 3, display.Height-1)
 		display.DisplayAt(fmt.Sprintf("%v", bytes), 85, display.Height-1)
 		display.DisplayAt(fmt.Sprintf("%v", selection), 100, display.Height-1)
+		display.ClearModifier()
+
 		if status == Status_Finished {
 			break
 		}
@@ -148,6 +155,7 @@ type Display struct {
 	Height int
 
 	modifier string
+	buffer   string
 }
 
 func NewDisplay() *Display {
@@ -188,26 +196,29 @@ func NewDisplay() *Display {
 }
 
 func (d *Display) Clear() {
-	d.tty.WriteString("\x1b[H\x1b[J")
+	d.buffer += "\x1b[H\x1b[J"
+}
+
+func (d *Display) Flush() {
+	d.tty.WriteString(d.buffer)
+	d.buffer = ""
 }
 
 func (d *Display) AddModifier(modifier string) {
-	d.modifier = modifier
+	d.buffer += modifier
+}
+
+func (d *Display) ClearModifier() {
+	d.buffer += "\x1b[m"
 }
 
 func (d *Display) MoveCursorAt(x, y int) {
-	d.tty.WriteString(fmt.Sprintf("\x1b[%d;%dH", y, x))
+	d.buffer += fmt.Sprintf("\x1b[%d;%dH", y, x)
 }
 
 func (d *Display) DisplayAt(data string, x, y int) {
 	d.MoveCursorAt(x, y)
-	command := data
-	if len(d.modifier) != 0 {
-		command = d.modifier + data + "\x1b[0m"
-		d.modifier = ""
-	}
-
-	d.tty.WriteString(command)
+	d.buffer += data
 }
 
 type Input struct {
@@ -323,12 +334,10 @@ func gatherProjectPaths() []string {
 func displayInputGraphic(display *Display) {
 	display.AddModifier("\x1b[2;36m")
 	display.DisplayAt("┌─ What project are you working on today? ────────────────────────────────────────┐", 1, display.Height-3)
-	display.AddModifier("\x1b[2;36m")
 	display.DisplayAt("│                                                                                 │", 1, display.Height-2)
-	display.AddModifier("\x1b[2;36m")
 	display.DisplayAt("│                                                                                 │", 1, display.Height-1)
-	display.AddModifier("\x1b[2;36m")
 	display.DisplayAt("└─────────────────────────────────────────────────────────────────────────────────┘", 1, display.Height)
+	display.ClearModifier()
 }
 
 func getProjectMatches(dirs []string, needle string, matchPath bool) []string {
