@@ -101,19 +101,22 @@ func getSelection(display *Display, input *Input, directories []string) string {
 
 		for i, dir := range queriedDirectories {
 			splitName := strings.Split(dir, "/")
-			path := strings.Join(splitName[0:len(splitName)-1], "/") + "/"
+			path := "[" + splitName[len(splitName)-2] + "]"
 			project := splitName[len(splitName)-1]
 
 			selectedMod := ""
 			if selection == i {
-				selectedMod = ";1;4"
+				selectedMod = ";1"
+				display.AddModifier("\x1b[2;1m")
+				display.DisplayAt(">", 2, 2+i)
+				display.ClearModifier()
 			}
 
 			display.AddModifier(fmt.Sprintf("\x1b[2%vm", selectedMod))
-			display.DisplayAt(path, 2, 2+i)
+			display.DisplayAt(path, 4, 2+i)
 			display.ClearModifier()
 			display.AddModifier(fmt.Sprintf("\x1b[%vm", selectedMod))
-			display.DisplayAt(project, len(path)+2, 2+i)
+			display.DisplayAt(project, len(path)+5, 2+i)
 			display.ClearModifier()
 		}
 
