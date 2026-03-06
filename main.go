@@ -255,7 +255,7 @@ func getProjectMatches(dirs []string, needle string, matchPath bool) []string {
 
 func getProjectMatchesRG(dirs []string, needle string) []string {
 	echoCmd := exec.Command("echo", strings.Join(dirs, "\n"))
-	rgCmd := exec.Command("rg", strings.ReplaceAll(needle, " ", ".*"))
+	rgCmd := exec.Command("rg", fmt.Sprintf("/[^/]*%[1]s[^/]*$|/[^/]*%[1]s[^/]*/[^/]*$", strings.ReplaceAll(needle, " ", ".*")))
 
 	cmdPipe, err := echoCmd.StdoutPipe()
 	if err != nil {
