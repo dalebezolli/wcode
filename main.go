@@ -24,6 +24,10 @@ type model struct {
 	queryInput         []byte
 	directories        []string
 	queriedDirectories []string
+
+	list  Box
+	input Box
+	info  Box
 }
 
 func (m *model) View(tui *TUI) {
@@ -57,26 +61,18 @@ func (m *model) View(tui *TUI) {
 		listContent += fmt.Sprintf("\x1b[%vm", selectedMod) + project + ANSI_CLEAR_MODIFIER
 	}
 
+	m.list.Content = ANSI_CLEAR_MODIFIER + "\x1b[B\x1b[C" + listContent
 	tui.Add(ANSI_CLEAR_MODIFIER + "\x1b[2;36m")
-	list := Box{
-		Width:   80,
-		Height:  tui.Height - 4,
-		Title:   "Projects",
-		Content: ANSI_CLEAR_MODIFIER + "\x1b[B\x1b[C" + listContent,
-	}
+	m.list.Render(tui)
 
-	list.Render(tui)
+	tui.MoveAt(tui.Width/2+1, 0)
+	m.info.Render(tui)
 
 	tui.MoveAt(0, tui.Height-3)
+	m.input.Content = ANSI_CLEAR_MODIFIER + "\x1b[1m\x1b[B\x1b[C" + string(m.queryInput)
 	tui.Add("\x1b[2;36m")
-	input := Box{
-		Width:   80,
-		Height:  4,
-		Title:   "What project are you working on today?",
-		Content: ANSI_CLEAR_MODIFIER + "\x1b[1m\x1b[B\x1b[C" + string(m.queryInput),
-	}
+	m.input.Render(tui)
 
-	input.Render(tui)
 	tui.Flush()
 }
 
@@ -84,6 +80,14 @@ func (m *model) Update(e Event) bool {
 	result := true
 
 	switch typedE := e.(type) {
+	case EventResize:
+		m.list.Height = typedE.Height - m.input.Height
+		m.list.Width = typedE.Width / 2
+
+		m.input.Width = typedE.Width / 2
+
+		m.info.Width = typedE.Width/2 - 1
+		m.info.Height = typedE.Height
 	case EventKeyPress:
 		result = m.onKeyPress(typedE)
 	}
@@ -168,12 +172,33 @@ func main() {
 		os.Exit(EXIT_NO_PROJECTS)
 	}
 
+	fmt.Println(strings.Join(directories, "\n"))
+
 	model := &model{
 		directories:        directories,
 		queriedDirectories: directories,
 	}
 
 	tui := NewTUI(model)
+
+	model.input = Box{
+		Title:  "What project are you working on today?",
+		Width:  tui.Width / 2,
+		Height: 4,
+	}
+
+	model.list = Box{
+		Title:  "Projects",
+		Width:  tui.Width / 2,
+		Height: tui.Height - model.input.Height,
+	}
+
+	model.info = Box{
+		Title:  "Info",
+		Width:  tui.Width/2 - 1,
+		Height: tui.Height,
+	}
+
 	defer tui.Close()
 
 	tui.Run()

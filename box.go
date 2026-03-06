@@ -6,9 +6,8 @@ import (
 )
 
 type Box struct {
-	Margin  int
-	Width   int
-	Height  int
+	Width  int
+	Height int
 	Title   string
 	Content string
 }
