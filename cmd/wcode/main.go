@@ -104,12 +104,15 @@ func (m *model) Update(e tui.Event) bool {
 		m.queriedDirectories = m.directories
 	}
 
-	m.selection = min(max(m.selection, 0), len(m.queriedDirectories)-1)
+	if result {
+		m.selection = min(max(m.selection, 0), len(m.queriedDirectories)-1)
+	}
 
 	return result
 }
 
 func (m *model) onKeyPress(e tui.EventKeyPress) bool {
+
 	switch e.ReadBuffer[0] {
 	case '\x7F':
 		if len(m.queryInput) == 0 {
