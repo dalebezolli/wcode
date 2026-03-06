@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"fmt"
@@ -9,10 +9,6 @@ import (
 
 	"golang.org/x/term"
 )
-
-const ANSI_CLEAR_MODIFIER = "\x1b[m"
-const ANSI_CLEAR_SCREEN = "\x1b[H\x1b[J"
-const ANSI_MOVE_TO = "\x1b[%d;%dH"
 
 type Event any
 

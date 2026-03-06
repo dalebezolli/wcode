@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"strconv"
@@ -6,8 +6,8 @@ import (
 )
 
 type Box struct {
-	Width  int
-	Height int
+	Width   int
+	Height  int
 	Title   string
 	Content string
 }
@@ -38,10 +38,10 @@ func (b *Box) Render(display *TUI) {
 	}
 
 	ansiString := topLeft + horizontal + " " + b.Title + " " + strings.Repeat(horizontal, b.Width-countOfMandatoryTopCharsWithoutLeftSpacer-len(b.Title)) + topRight
-	ansiString += strings.Repeat(lineShift+vertical+"\x1b["+strconv.Itoa(b.Width-countOfMandatoryContainerChars)+"C"+vertical, b.Height-countOfMandatoryContainerChars)
+	ansiString += strings.Repeat(lineShift+vertical+AnsiMoveRight(b.Width-countOfMandatoryContainerChars)+vertical, b.Height-countOfMandatoryContainerChars)
 	ansiString += lineShift + bottomLeft + strings.Repeat(horizontal, b.Width-countOfMandatoryContainerChars) + bottomRight
 
-	ansiString += "\x1b[" + strconv.Itoa(b.Width-contentLeftPadding) + "D" + "\x1b[" + strconv.Itoa(b.Height-contentTopPadding) + "A" + b.Content
+	ansiString += AnsiMoveLeft(b.Width-contentLeftPadding) + AnsiMoveUp(b.Height-contentTopPadding) + b.Content
 
 	display.Add(ansiString)
 }

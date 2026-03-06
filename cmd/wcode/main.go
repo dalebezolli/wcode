@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
+
+	"github.com/dalebezolli/wcode/internal/matchers"
+	"github.com/dalebezolli/wcode/internal/tui"
 )
 
 const DIR_CONFIG = "$HOME/.config/wcode"
@@ -19,19 +21,23 @@ const (
 	EXIT_TERMINATED   = 9
 )
 
+const SELECTED_LINE_INDICATOR = "•"
+
 type model struct {
+	matcher matchers.Matcher
+
 	selection          int
 	queryInput         []byte
 	directories        []string
 	queriedDirectories []string
 
-	list  Box
-	input Box
-	info  Box
+	list  tui.Box
+	input tui.Box
+	info  tui.Box
 }
 
-func (m *model) View(tui *TUI) {
-	tui.Clear()
+func (m *model) View(t *tui.TUI) {
+	t.Clear()
 
 	listContent := ""
 	for i, dir := range m.queriedDirectories {
@@ -50,37 +56,37 @@ func (m *model) View(tui *TUI) {
 		selectedMod := ""
 		if m.selection == i {
 			selectedMod = ";1"
-			listContent += fmt.Sprintf(ANSI_MOVE_TO, 3+i, 3)
-			listContent += "\x1b[2;1m•" + ANSI_CLEAR_MODIFIER
+			listContent += tui.AnsiMoveTo(3, 3+i)
+			listContent += "\x1b[2;1m" + SELECTED_LINE_INDICATOR + tui.ANSI_CLEAR_MODIFIER
 		}
 
-		listContent += fmt.Sprintf(ANSI_MOVE_TO, 3+i, 5)
-		listContent += fmt.Sprintf("\x1b[2%vm", selectedMod) + path + ANSI_CLEAR_MODIFIER
+		listContent += tui.AnsiMoveTo(5, 3+i)
+		listContent += fmt.Sprintf("\x1b[2%vm", selectedMod) + path + tui.ANSI_CLEAR_MODIFIER
 
-		listContent += fmt.Sprintf(ANSI_MOVE_TO, 3+i, len(path)+6)
-		listContent += fmt.Sprintf("\x1b[%vm", selectedMod) + project + ANSI_CLEAR_MODIFIER
+		listContent += tui.AnsiMoveTo(len(path)+6, 3+i)
+		listContent += fmt.Sprintf("\x1b[%vm", selectedMod) + project + tui.ANSI_CLEAR_MODIFIER
 	}
 
-	m.list.Content = ANSI_CLEAR_MODIFIER + "\x1b[B\x1b[C" + listContent
-	tui.Add(ANSI_CLEAR_MODIFIER + "\x1b[2;36m")
-	m.list.Render(tui)
+	m.list.Content = tui.ANSI_CLEAR_MODIFIER + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + listContent
+	t.Add(tui.ANSI_CLEAR_MODIFIER + "\x1b[2;36m")
+	m.list.Render(t)
 
-	tui.MoveAt(tui.Width/2+1, 0)
-	m.info.Render(tui)
+	t.MoveAt(t.Width/2+1, 0)
+	m.info.Render(t)
 
-	tui.MoveAt(0, tui.Height-3)
-	m.input.Content = ANSI_CLEAR_MODIFIER + "\x1b[1m\x1b[B\x1b[C" + string(m.queryInput)
-	tui.Add("\x1b[2;36m")
-	m.input.Render(tui)
+	t.MoveAt(0, t.Height-3)
+	m.input.Content = tui.ANSI_CLEAR_MODIFIER + tui.ANSI_BOLD + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + string(m.queryInput)
+	t.Add("\x1b[2;36m")
+	m.input.Render(t)
 
-	tui.Flush()
+	t.Flush()
 }
 
-func (m *model) Update(e Event) bool {
+func (m *model) Update(e tui.Event) bool {
 	result := true
 
 	switch typedE := e.(type) {
-	case EventResize:
+	case tui.EventResize:
 		m.list.Height = typedE.Height - m.input.Height
 		m.list.Width = typedE.Width / 2
 
@@ -88,12 +94,12 @@ func (m *model) Update(e Event) bool {
 
 		m.info.Width = typedE.Width/2 - 1
 		m.info.Height = typedE.Height
-	case EventKeyPress:
+	case tui.EventKeyPress:
 		result = m.onKeyPress(typedE)
 	}
 
 	if len(m.queryInput) != 0 {
-		m.queriedDirectories = getProjectMatchesRG(m.directories, string(m.queryInput))
+		m.queriedDirectories = m.matcher.Match(m.directories, string(m.queryInput))
 	} else {
 		m.queriedDirectories = m.directories
 	}
@@ -103,7 +109,7 @@ func (m *model) Update(e Event) bool {
 	return result
 }
 
-func (m *model) onKeyPress(e EventKeyPress) bool {
+func (m *model) onKeyPress(e tui.EventKeyPress) bool {
 	switch e.ReadBuffer[0] {
 	case '\x7F':
 		if len(m.queryInput) == 0 {
@@ -177,33 +183,34 @@ func main() {
 	model := &model{
 		directories:        directories,
 		queriedDirectories: directories,
+		matcher:            matchers.MatcherRG{},
 	}
 
-	tui := NewTUI(model)
+	t := tui.NewTUI(model)
 
-	model.input = Box{
+	model.input = tui.Box{
 		Title:  "What project are you working on today?",
-		Width:  tui.Width / 2,
+		Width:  t.Width / 2,
 		Height: 4,
 	}
 
-	model.list = Box{
+	model.list = tui.Box{
 		Title:  "Projects",
-		Width:  tui.Width / 2,
-		Height: tui.Height - model.input.Height,
+		Width:  t.Width / 2,
+		Height: t.Height - model.input.Height,
 	}
 
-	model.info = Box{
+	model.info = tui.Box{
 		Title:  "Info",
-		Width:  tui.Width/2 - 1,
-		Height: tui.Height,
+		Width:  t.Width/2 - 1,
+		Height: t.Height,
 	}
 
-	defer tui.Close()
+	defer t.Close()
 
-	tui.Run()
-	tui.Clear()
-	tui.Flush()
+	t.Run()
+	t.Clear()
+	t.Flush()
 
 	selectionPath := ""
 	if model.selection != -1 {
@@ -213,12 +220,12 @@ func main() {
 	err = saveSelectionToDisk(selectionPath)
 	if err != nil {
 		fmt.Println("An unexpected error occured while saving the selection:", err.Error())
-		tui.Close()
+		t.Close()
 		os.Exit(EXIT_BAD_PATH)
 	}
 
 	if len(selectionPath) == 0 {
-		tui.Close()
+		t.Close()
 		os.Exit(EXIT_NO_SELECTION)
 	}
 }
@@ -262,58 +269,4 @@ func saveSelectionToDisk(selection string) error {
 func gatherProjectPaths() []string {
 	pathsString := os.ExpandEnv(ENV_PROJECT_PATHS)
 	return strings.Split(pathsString, " ")
-}
-
-func getProjectMatches(dirs []string, needle string, matchPath bool) []string {
-	res := make([]string, 0, len(dirs))
-
-	for _, hay := range dirs {
-		if !isMatch(strings.ToLower(hay), strings.ToLower(needle), matchPath) {
-			continue
-		}
-
-		res = append(res, hay)
-	}
-
-	return res
-}
-
-func getProjectMatchesRG(dirs []string, needle string) []string {
-	echoCmd := exec.Command("echo", strings.Join(dirs, "\n"))
-	rgCmd := exec.Command("rg", fmt.Sprintf("/[^/]*%[1]s[^/]*$|/[^/]*%[1]s[^/]*/[^/]*$", strings.ReplaceAll(needle, " ", ".*")))
-
-	cmdPipe, err := echoCmd.StdoutPipe()
-	if err != nil {
-		return dirs
-	}
-
-	rgCmd.Stdin = cmdPipe
-
-	echoCmd.Start()
-	res, err := rgCmd.CombinedOutput()
-
-	if err != nil {
-		return dirs
-	}
-
-	return strings.Split(string(res), "\n")
-}
-
-func isMatch(haystack string, needle string, matchPath bool) bool {
-	for i := len(haystack) - 1; i >= len(needle)-1; i-- {
-		if !matchPath && haystack[i] == '/' {
-			return false
-		}
-
-		j := 0
-		for j < len(needle) && haystack[i-j] == needle[len(needle)-j-1] {
-			j++
-		}
-
-		if j == len(needle) {
-			return true
-		}
-	}
-
-	return false
 }
