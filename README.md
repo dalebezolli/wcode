@@ -19,7 +19,7 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 ## 🌷 How to use
 To use it after compilation run the following command
 ```sh
-wcode; if [ $(echo $?) -eq 0 ]; then cd $(cat ~/.config/wcode/selection); else echo "No project selected"; fi
+bin/wcode; if [ $(echo $?) -eq 0 ]; then cd $(cat ~/.config/wcode/selection); else echo "No project selected"; fi
 ```
 and alias it... don't be silly.
 
