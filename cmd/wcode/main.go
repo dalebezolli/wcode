@@ -181,12 +181,18 @@ func main() {
 		os.Exit(EXIT_NO_PROJECTS)
 	}
 
-	fmt.Println(strings.Join(directories, "\n"))
+	var matcher matchers.Matcher
+
+	if matchers.IsMatcherRGAvailable() {
+		matcher = matchers.MatcherRG{}
+	} else {
+		matcher = matchers.MatcherLinear{}
+	}
 
 	model := &model{
 		directories:        directories,
 		queriedDirectories: directories,
-		matcher:            matchers.MatcherRG{},
+		matcher:            matcher,
 	}
 
 	t := tui.NewTUI(model)

@@ -29,3 +29,10 @@ func (m MatcherRG) Match(dirs []string, needle string) []string {
 
 	return strings.Split(string(res), "\n")
 }
+
+func IsMatcherRGAvailable() bool {
+	cmd := exec.Command("rg", "--version")
+	err := cmd.Run()
+
+	return err == nil
+}
