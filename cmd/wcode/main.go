@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/dalebezolli/wcode/internal/detailers"
 	"github.com/dalebezolli/wcode/internal/matchers"
 	"github.com/dalebezolli/wcode/internal/tui"
 )
@@ -22,9 +23,13 @@ const (
 )
 
 const SELECTED_LINE_INDICATOR = "•"
+const PATH_LABEL = "Path: "
+const INFO_LABEL = "Info"
+const INFO_NO_DATA_LABEL = "No info available"
 
 type model struct {
-	matcher matchers.Matcher
+	matcher  matchers.Matcher
+	detailer detailers.Detailer
 
 	selection          int
 	queryInput         []byte
@@ -72,14 +77,49 @@ func (m *model) View(t *tui.TUI) {
 	m.list.Render(t)
 
 	t.MoveAt(t.Width/2+1, 0)
+	t.Add("\x1b[2;36m")
+
+	m.info.Content = tui.ANSI_CLEAR_MODIFIER + tui.ANSI_BOLD + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + m.prepareDetails(t)
 	m.info.Render(t)
 
 	t.MoveAt(0, t.Height-3)
-	m.input.Content = tui.ANSI_CLEAR_MODIFIER + tui.ANSI_BOLD + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + string(m.queryInput)
+	m.input.Content = tui.ANSI_CLEAR_MODIFIER + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + string(m.queryInput)
 	t.Add("\x1b[2;36m")
 	m.input.Render(t)
 
 	t.Flush()
+}
+
+func (m *model) prepareDetails(t *tui.TUI) string {
+	details := m.detailer.GetDetails(m.queriedDirectories[m.selection])
+
+	rowMaxLen := t.Width/2 - 8
+
+	cleanedTitle := details.Title
+	if len(cleanedTitle) > rowMaxLen {
+		cleanedTitle = string([]byte(cleanedTitle)[:rowMaxLen]) + "..."
+	}
+
+	detailsString := tui.ANSI_BOLD + cleanedTitle + tui.AnsiMoveLeft(len(cleanedTitle)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER +
+		PATH_LABEL + details.Path + tui.AnsiMoveLeft(len(details.Path)+len(PATH_LABEL)) + tui.AnsiMoveDown(2) +
+		tui.ANSI_BOLD + INFO_LABEL + tui.AnsiMoveLeft(len(INFO_LABEL)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
+
+	if len(details.Rest) == 0 {
+		detailsString += INFO_NO_DATA_LABEL
+	} else {
+		order := m.detailer.GetRestOrder()
+
+		for _, key := range order {
+			val, exists := details.Rest[key]
+			if !exists {
+				continue
+			}
+
+			detailsString += key + val + tui.AnsiMoveLeft(len(key)+len(val)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
+		}
+	}
+
+	return detailsString
 }
 
 func (m *model) Update(e tui.Event) bool {
@@ -112,7 +152,6 @@ func (m *model) Update(e tui.Event) bool {
 }
 
 func (m *model) onKeyPress(e tui.EventKeyPress) bool {
-
 	switch e.ReadBuffer[0] {
 	case '\x7F':
 		if len(m.queryInput) == 0 {
@@ -189,10 +228,15 @@ func main() {
 		matcher = matchers.MatcherLinear{}
 	}
 
+	var detailer detailers.Detailer
+	detailer = detailers.DetailerGit{}
+
 	model := &model{
+		matcher:  matcher,
+		detailer: detailer,
+
 		directories:        directories,
 		queriedDirectories: directories,
-		matcher:            matcher,
 	}
 
 	t := tui.NewTUI(model)
