@@ -7,9 +7,10 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 ✅ Fullscreen TUI display \
 ✅ Searching with Linear Search (fallback) \
 ✅ Searching with RipGrep \
-🟥 Project details view \
+✅ Project details view \
+🟥 Config to make things beautiful \
 
-![wcode Showcase](./wcode_showcase.png)
+![wcode Showcase](./wcode_showcase.gif)
 
 ## 🌱 How to install
 1. Clone the repo.
