@@ -8,7 +8,7 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 ✅ Searching with Linear Search (fallback) \
 ✅ Searching with RipGrep \
 ✅ Project details view \
-🟥 Config to make things beautiful \
+🟥 Config to make things beautiful
 
 ![wcode Showcase](./wcode_showcase.gif)
 
