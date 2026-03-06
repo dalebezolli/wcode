@@ -1,14 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
-
-	term "golang.org/x/term"
 )
 
 const DIR_CONFIG = "$HOME/.config/wcode"
@@ -22,6 +18,135 @@ const (
 	EXIT_NO_SELECTION = 3
 	EXIT_TERMINATED   = 9
 )
+
+type model struct {
+	selection          int
+	queryInput         []byte
+	directories        []string
+	queriedDirectories []string
+}
+
+func (m *model) View(tui *TUI) {
+	tui.Clear()
+
+	listContent := ""
+	for i, dir := range m.queriedDirectories {
+		if len(dir) == 0 {
+			continue
+		}
+
+		splitPath := strings.Split(dir, "/")
+		if len(splitPath) < 2 {
+			continue
+		}
+
+		path := "[" + splitPath[len(splitPath)-2] + "]"
+		project := splitPath[len(splitPath)-1]
+
+		selectedMod := ""
+		if m.selection == i {
+			selectedMod = ";1"
+			listContent += fmt.Sprintf(ANSI_MOVE_TO, 3+i, 3)
+			listContent += "\x1b[2;1m•" + ANSI_CLEAR_MODIFIER
+		}
+
+		listContent += fmt.Sprintf(ANSI_MOVE_TO, 3+i, 5)
+		listContent += fmt.Sprintf("\x1b[2%vm", selectedMod) + path + ANSI_CLEAR_MODIFIER
+
+		listContent += fmt.Sprintf(ANSI_MOVE_TO, 3+i, len(path)+6)
+		listContent += fmt.Sprintf("\x1b[%vm", selectedMod) + project + ANSI_CLEAR_MODIFIER
+	}
+
+	tui.Add(ANSI_CLEAR_MODIFIER + "\x1b[2;36m")
+	list := Box{
+		Width:   80,
+		Height:  tui.Height - 4,
+		Title:   "Projects",
+		Content: ANSI_CLEAR_MODIFIER + "\x1b[B\x1b[C" + listContent,
+	}
+
+	list.Render(tui)
+
+	tui.MoveAt(0, tui.Height-3)
+	tui.Add("\x1b[2;36m")
+	input := Box{
+		Width:   80,
+		Height:  4,
+		Title:   "What project are you working on today?",
+		Content: ANSI_CLEAR_MODIFIER + "\x1b[1m\x1b[B\x1b[C" + string(m.queryInput),
+	}
+
+	input.Render(tui)
+	tui.Flush()
+}
+
+func (m *model) Update(e Event) bool {
+	result := true
+
+	switch typedE := e.(type) {
+	case EventKeyPress:
+		result = m.onKeyPress(typedE)
+	}
+
+	if len(m.queryInput) != 0 {
+		m.queriedDirectories = getProjectMatchesRG(m.directories, string(m.queryInput))
+	} else {
+		m.queriedDirectories = m.directories
+	}
+
+	m.selection = min(max(m.selection, 0), len(m.queriedDirectories)-1)
+
+	return result
+}
+
+func (m *model) onKeyPress(e EventKeyPress) bool {
+	switch e.ReadBuffer[0] {
+	case '\x7F':
+		if len(m.queryInput) == 0 {
+			break
+		}
+		m.queryInput = m.queryInput[0 : len(m.queryInput)-1]
+	case '\x0E', '\x04':
+		m.selection++
+	case '\x10', '\x15':
+		m.selection--
+	case '\x03', '\x18':
+		m.selection = -1
+		return false
+	case '\x0D':
+		return false
+	case '\x1B':
+
+		if e.ReadBuffer[1] == '\x7F' {
+			foundSpace := false
+			foundWord := false
+			i := len(m.queryInput) - 1
+			for i >= 0 && !foundSpace {
+				if foundWord && m.queryInput[i] == '\x20' {
+					foundSpace = true
+				} else {
+					foundWord = true
+					i--
+				}
+			}
+
+			m.queryInput = m.queryInput[0 : i+1]
+			m.selection = 0
+		}
+
+		switch e.ReadBuffer[2] {
+		case '\x41':
+			m.selection--
+		case '\x42':
+			m.selection++
+		}
+	default:
+		m.queryInput = append(m.queryInput, e.ReadBuffer[0])
+		m.selection = 0
+	}
+
+	return true
+}
 
 func main() {
 	err := setupFiles()
@@ -43,25 +168,32 @@ func main() {
 		os.Exit(EXIT_NO_PROJECTS)
 	}
 
-	input := NewInput()
-	defer input.Close()
+	model := &model{
+		directories:        directories,
+		queriedDirectories: directories,
+	}
 
-	display := NewDisplay()
-	display.Clear()
-	display.Flush()
-	selection := getSelection(display, input, directories)
-	display.Clear()
-	display.Flush()
+	tui := NewTUI(model)
+	defer tui.Close()
 
-	err = saveSelectionToDisk(selection)
+	tui.Run()
+	tui.Clear()
+	tui.Flush()
+
+	selectionPath := ""
+	if model.selection != -1 {
+		selectionPath = model.queriedDirectories[model.selection]
+	}
+
+	err = saveSelectionToDisk(selectionPath)
 	if err != nil {
 		fmt.Println("An unexpected error occured while saving the selection:", err.Error())
-		input.Close()
+		tui.Close()
 		os.Exit(EXIT_BAD_PATH)
 	}
 
-	if len(selection) == 0 {
-		input.Close()
+	if len(selectionPath) == 0 {
+		tui.Close()
 		os.Exit(EXIT_NO_SELECTION)
 	}
 }
@@ -87,233 +219,6 @@ func gatherProjects(roots []string) ([]string, error) {
 	return directories, nil
 }
 
-func getSelection(display *Display, input *Input, directories []string) string {
-	displayInputGraphic(display)
-
-	selection := 0
-	queriedDirectories := directories
-	for {
-		if len(input.GetValue()) != 0 {
-			queriedDirectories = getProjectMatches(directories, input.GetValue(), false)
-		} else {
-			queriedDirectories = directories
-		}
-
-		for i, dir := range queriedDirectories {
-			splitName := strings.Split(dir, "/")
-			path := "[" + splitName[len(splitName)-2] + "]"
-			project := splitName[len(splitName)-1]
-
-			selectedMod := ""
-			if selection == i {
-				selectedMod = ";1"
-				display.AddModifier("\x1b[2;1m")
-				display.DisplayAt(">", 2, 2+i)
-				display.ClearModifier()
-			}
-
-			display.AddModifier(fmt.Sprintf("\x1b[2%vm", selectedMod))
-			display.DisplayAt(path, 4, 2+i)
-			display.ClearModifier()
-			display.AddModifier(fmt.Sprintf("\x1b[%vm", selectedMod))
-			display.DisplayAt(project, len(path)+5, 2+i)
-			display.ClearModifier()
-		}
-
-		display.MoveCursorAt(3+len(input.GetValue()), display.Height-1)
-		display.Flush()
-		userInput, bytes, status := input.Read(&selection)
-
-		selection = min(max(selection, 0), len(queriedDirectories)-1)
-
-		display.Clear()
-
-		displayInputGraphic(display)
-		display.AddModifier("\x1b[1m")
-		display.DisplayAt(userInput, 3, display.Height-1)
-		display.DisplayAt(fmt.Sprintf("%v", bytes), 85, display.Height-1)
-		display.DisplayAt(fmt.Sprintf("%v", selection), 100, display.Height-1)
-		display.ClearModifier()
-
-		if status == Status_Finished {
-			break
-		}
-
-		if status == Status_Terminated {
-			selection = -1
-			break
-		}
-	}
-
-	if selection >= 0 && selection < len(queriedDirectories) {
-		return queriedDirectories[selection]
-	} else {
-		return ""
-	}
-}
-
-type Display struct {
-	tty    *os.File
-	Width  int
-	Height int
-
-	modifier string
-	buffer   string
-}
-
-func NewDisplay() *Display {
-	f, err := os.OpenFile("/dev/tty", os.O_RDWR|os.O_APPEND|os.O_TRUNC, 0666)
-	if err != nil {
-		fmt.Println("Error:", err)
-	}
-
-	output := &bytes.Buffer{}
-
-	cmd := exec.Command("tput", "lines")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = output
-	cmd.Run()
-	height, _ := strconv.Atoi(strings.Trim(output.String(), " \n\t"))
-	output.Reset()
-
-	if height == 0 {
-		height = 24
-	}
-
-	cmd = exec.Command("tput", "cols")
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = output
-	cmd.Run()
-	width, _ := strconv.Atoi(strings.Trim(output.String(), " \n\t"))
-	output.Reset()
-
-	if width == 0 {
-		width = 80
-	}
-
-	return &Display{
-		tty:    f,
-		Width:  0,
-		Height: height,
-	}
-}
-
-func (d *Display) Clear() {
-	d.buffer += "\x1b[H\x1b[J"
-}
-
-func (d *Display) Flush() {
-	d.tty.WriteString(d.buffer)
-	d.buffer = ""
-}
-
-func (d *Display) AddModifier(modifier string) {
-	d.buffer += modifier
-}
-
-func (d *Display) ClearModifier() {
-	d.buffer += "\x1b[m"
-}
-
-func (d *Display) MoveCursorAt(x, y int) {
-	d.buffer += fmt.Sprintf("\x1b[%d;%dH", y, x)
-}
-
-func (d *Display) DisplayAt(data string, x, y int) {
-	d.MoveCursorAt(x, y)
-	d.buffer += data
-}
-
-type Input struct {
-	oldFdState *term.State
-	readBuffer []byte
-	value      []byte
-}
-
-func NewInput() *Input {
-	oldState, _ := term.MakeRaw(int(os.Stdin.Fd()))
-
-	return &Input{oldFdState: oldState, readBuffer: make([]byte, 3), value: make([]byte, 0, 80)}
-}
-
-type Status int
-
-const (
-	Status_Ok = iota
-	Status_Finished
-	Status_Terminated
-)
-
-func (in *Input) Read(selection *int) (string, []byte, Status) {
-	var status Status = Status_Ok
-	in.readBuffer[1] = 0
-	in.readBuffer[2] = 0
-	os.Stdin.Read(in.readBuffer)
-
-	switch in.readBuffer[0] {
-	case '\x7F':
-		if len(in.value) == 0 {
-			break
-		}
-
-		in.value = in.value[0 : len(in.value)-1]
-		break
-	case '\x0E', '\x04':
-		(*selection)++
-		break
-	case '\x10', '\x15':
-		(*selection)--
-		break
-	case '\x03', '\x18':
-		*selection = 0
-		status = Status_Terminated
-		break
-	case '\x0D':
-		status = Status_Finished
-		break
-	case '\x1B':
-		if in.readBuffer[1] == '\x7F' {
-			foundSpace := false
-			foundWord := false
-			i := len(in.value) - 1
-			for i >= 0 && !foundSpace {
-				if foundWord && in.value[i] == '\x20' {
-					foundSpace = true
-				} else {
-					foundWord = true
-					i--
-				}
-			}
-
-			in.value = in.value[0 : i+1]
-			*selection = 0
-		}
-
-		switch in.readBuffer[2] {
-		case '\x41':
-			*selection--
-			break
-		case '\x42':
-			*selection++
-			break
-		}
-		break
-	default:
-		in.value = append(in.value, in.readBuffer[0])
-		*selection = 0
-	}
-
-	return in.GetValue(), in.readBuffer, status
-}
-
-func (i *Input) GetValue() string {
-	return string(i.value)
-}
-
-func (i *Input) Close() {
-	term.Restore(int(os.Stdin.Fd()), i.oldFdState)
-}
-
 func setupFiles() error {
 	baseDir := os.ExpandEnv(DIR_CONFIG)
 	return os.MkdirAll(baseDir, 0751)
@@ -334,15 +239,6 @@ func gatherProjectPaths() []string {
 	return strings.Split(pathsString, " ")
 }
 
-func displayInputGraphic(display *Display) {
-	display.AddModifier("\x1b[2;36m")
-	display.DisplayAt("┌─ What project are you working on today? ────────────────────────────────────────┐", 1, display.Height-3)
-	display.DisplayAt("│                                                                                 │", 1, display.Height-2)
-	display.DisplayAt("│                                                                                 │", 1, display.Height-1)
-	display.DisplayAt("└─────────────────────────────────────────────────────────────────────────────────┘", 1, display.Height)
-	display.ClearModifier()
-}
-
 func getProjectMatches(dirs []string, needle string, matchPath bool) []string {
 	res := make([]string, 0, len(dirs))
 
@@ -355,6 +251,27 @@ func getProjectMatches(dirs []string, needle string, matchPath bool) []string {
 	}
 
 	return res
+}
+
+func getProjectMatchesRG(dirs []string, needle string) []string {
+	echoCmd := exec.Command("echo", strings.Join(dirs, "\n"))
+	rgCmd := exec.Command("rg", strings.ReplaceAll(needle, " ", ".*"))
+
+	cmdPipe, err := echoCmd.StdoutPipe()
+	if err != nil {
+		return dirs
+	}
+
+	rgCmd.Stdin = cmdPipe
+
+	echoCmd.Start()
+	res, err := rgCmd.CombinedOutput()
+
+	if err != nil {
+		return dirs
+	}
+
+	return strings.Split(string(res), "\n")
 }
 
 func isMatch(haystack string, needle string, matchPath bool) bool {
