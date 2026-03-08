@@ -27,7 +27,7 @@ func (m MatcherRG) Match(dirs []string, needle string) []string {
 		return dirs
 	}
 
-	return strings.Split(string(res), "\n")
+	return strings.Split(string(res[:len(res)-1]), "\n")
 }
 
 func IsMatcherRGAvailable() bool {
