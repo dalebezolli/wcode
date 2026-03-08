@@ -73,21 +73,30 @@ func (m *model) View(t *tui.TUI) {
 	}
 
 	m.list.Content = tui.ANSI_CLEAR_MODIFIER + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + listContent
-	t.Add(tui.ANSI_CLEAR_MODIFIER + "\x1b[2;36m")
+	t.Add(tui.ANSI_CLEAR_MODIFIER + "\x1b[38;5;45m")
 	m.list.Render(t)
 
 	t.MoveAt(t.Width/2+1, 0)
-	t.Add("\x1b[2;36m")
+	t.Add("\x1b[38;5;45m")
 
 	m.info.Content = tui.ANSI_CLEAR_MODIFIER + tui.ANSI_BOLD + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + m.prepareDetails(t)
 	m.info.Render(t)
 
 	t.MoveAt(0, t.Height-3)
 	m.input.Content = tui.ANSI_CLEAR_MODIFIER + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + string(m.queryInput)
-	t.Add("\x1b[2;36m")
+	t.Add("\x1b[38;5;45m")
 	m.input.Render(t)
 
 	t.Flush()
+}
+
+var detailColors = []string{
+	"33",
+	"69",
+	"105",
+	"141",
+	"177",
+	"213",
 }
 
 func (m *model) prepareDetails(t *tui.TUI) string {
@@ -101,21 +110,21 @@ func (m *model) prepareDetails(t *tui.TUI) string {
 	}
 
 	detailsString := tui.ANSI_BOLD + cleanedTitle + tui.AnsiMoveLeft(len(cleanedTitle)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER +
-		PATH_LABEL + details.Path + tui.AnsiMoveLeft(len(details.Path)+len(PATH_LABEL)) + tui.AnsiMoveDown(2) +
+		"\x1b[38;5;243m" + PATH_LABEL + details.Path + tui.AnsiMoveLeft(len(details.Path)+len(PATH_LABEL)) + tui.AnsiMoveDown(2) + tui.ANSI_CLEAR_MODIFIER +
 		tui.ANSI_BOLD + INFO_LABEL + tui.AnsiMoveLeft(len(INFO_LABEL)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
 
 	if len(details.Rest) == 0 {
-		detailsString += INFO_NO_DATA_LABEL
+		detailsString += "\x1b[38;5;243m" + INFO_NO_DATA_LABEL
 	} else {
 		order := m.detailer.GetRestOrder()
 
-		for _, key := range order {
+		for i, key := range order {
 			val, exists := details.Rest[key]
 			if !exists {
 				continue
 			}
 
-			detailsString += key + val + tui.AnsiMoveLeft(len(key)+len(val)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
+			detailsString += "\x1b[38;5;" + detailColors[i%len(detailColors)] + "m" + key + val + tui.AnsiMoveLeft(len(key)+len(val)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
 		}
 	}
 
