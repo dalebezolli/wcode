@@ -36,6 +36,8 @@ type model struct {
 	directories        []string
 	queriedDirectories []string
 
+	projectDetails map[string]string
+
 	list  tui.Box
 	input tui.Box
 	info  tui.Box
@@ -100,6 +102,10 @@ var detailColors = []string{
 }
 
 func (m *model) prepareDetails(t *tui.TUI) string {
+	if _, exists := m.projectDetails[m.queriedDirectories[m.selection]]; exists {
+		return m.projectDetails[m.queriedDirectories[m.selection]]
+	}
+
 	details := m.detailer.GetDetails(m.queriedDirectories[m.selection])
 
 	rowMaxLen := t.Width/2 - 8
@@ -128,6 +134,8 @@ func (m *model) prepareDetails(t *tui.TUI) string {
 		}
 	}
 
+	m.projectDetails[m.queriedDirectories[m.selection]] = detailsString
+
 	return detailsString
 }
 
@@ -154,7 +162,7 @@ func (m *model) Update(e tui.Event) bool {
 	}
 
 	if result {
-		m.selection = min(max(m.selection, 0), len(m.queriedDirectories)-1)
+		m.selection = (m.selection + len(m.queriedDirectories)) % len(m.queriedDirectories)
 	}
 
 	return result
@@ -246,6 +254,7 @@ func main() {
 
 		directories:        directories,
 		queriedDirectories: directories,
+		projectDetails:     make(map[string]string),
 	}
 
 	t := tui.NewTUI(model)
