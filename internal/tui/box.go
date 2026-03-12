@@ -37,11 +37,31 @@ func (b *Box) Render(display *TUI) {
 		b.Title = b.Title[:b.Width-countOfMandatoryTopChars]
 	}
 
-	ansiString := topLeft + horizontal + " " + b.Title + " " + strings.Repeat(horizontal, b.Width-countOfMandatoryTopCharsWithoutLeftSpacer-len(b.Title)) + topRight
-	ansiString += strings.Repeat(lineShift+vertical+AnsiMoveRight(b.Width-countOfMandatoryContainerChars)+vertical, b.Height-countOfMandatoryContainerChars)
-	ansiString += lineShift + bottomLeft + strings.Repeat(horizontal, b.Width-countOfMandatoryContainerChars) + bottomRight
+	display.Add(topLeft)
+	display.Add(horizontal)
+	display.Add(" ")
+	display.Add(b.Title)
+	display.Add(" ")
+	display.Add(strings.Repeat(
+		horizontal,
+		b.Width-countOfMandatoryTopCharsWithoutLeftSpacer-len(b.Title),
+	))
+	display.Add(topRight)
 
-	ansiString += AnsiMoveLeft(b.Width-contentLeftPadding) + AnsiMoveUp(b.Height-contentTopPadding) + b.Content
+	display.Add(strings.Repeat(
+		lineShift+vertical+AnsiMoveRight(b.Width-countOfMandatoryContainerChars)+vertical,
+		b.Height-countOfMandatoryContainerChars,
+	))
 
-	display.Add(ansiString)
+	display.Add(lineShift)
+	display.Add(bottomLeft)
+	display.Add(strings.Repeat(
+		horizontal,
+		b.Width-countOfMandatoryContainerChars,
+	))
+	display.Add(bottomRight)
+
+	display.Add(AnsiMoveLeft(b.Width - contentLeftPadding))
+	display.Add(AnsiMoveUp(b.Height - contentTopPadding))
+	// display.Add(b.Content)
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
+	"strings"
 	"syscall"
 
 	"golang.org/x/term"
@@ -22,8 +23,9 @@ type EventKeyPress struct {
 }
 
 type Model interface {
+	Start(tui *TUI)
 	View(tui *TUI)
-	Update(e Event) bool
+	Update(e Event, tui *TUI) bool
 }
 
 type TUI struct {
@@ -32,7 +34,7 @@ type TUI struct {
 	Height int
 
 	modifier       string
-	buffer         string
+	buffer         strings.Builder
 	event          chan Event
 	eventListeners map[reflect.Type]map[string]func(any)
 
@@ -93,20 +95,20 @@ func (tui *TUI) listenForInput() {
 }
 
 func (tui *TUI) Clear() {
-	tui.buffer += ANSI_CLEAR_SCREEN
+	tui.buffer.WriteString(ANSI_CLEAR_SCREEN)
 }
 
 func (tui *TUI) Flush() {
-	tui.tty.WriteString(tui.buffer)
-	tui.buffer = ""
+	tui.tty.WriteString(tui.buffer.String())
+	tui.buffer.Reset()
 }
 
 func (tui *TUI) MoveAt(x, y int) {
-	tui.buffer += fmt.Sprintf(ANSI_MOVE_TO, y, x)
+	tui.buffer.WriteString(fmt.Sprintf(ANSI_MOVE_TO, y, x))
 }
 
 func (tui *TUI) Add(data string) {
-	tui.buffer += data
+	tui.buffer.WriteString(data)
 }
 
 func (tui *TUI) SyncSize() {
@@ -134,11 +136,13 @@ func (tui *TUI) Close() {
 }
 
 func (tui *TUI) Run() {
+	tui.model.Start(tui)
+
 	for {
 		tui.model.View(tui)
 
 		event := <-tui.event
-		keepGoing := tui.model.Update(event)
+		keepGoing := tui.model.Update(event, tui)
 
 		if !keepGoing {
 			return

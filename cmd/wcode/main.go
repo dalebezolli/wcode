@@ -36,17 +36,61 @@ type model struct {
 	directories        []string
 	queriedDirectories []string
 
-	projectDetails map[string]string
+	projectDetails map[string]detailers.Details
+
+	// Used to reduce rendering
+	prevQueriedDirectories []string
+	previousSelection      int
 
 	list  tui.Box
 	input tui.Box
 	info  tui.Box
 }
 
-func (m *model) View(t *tui.TUI) {
+func (m *model) Start(t *tui.TUI) {
+	m.input = tui.Box{
+		Title:  "What project are you working on today?",
+		Width:  t.Width / 2,
+		Height: 4,
+	}
+
+	m.list = tui.Box{
+		Title:  "Projects",
+		Width:  t.Width / 2,
+		Height: t.Height - m.input.Height,
+	}
+
+	m.info = tui.Box{
+		Title:  "Info",
+		Width:  t.Width/2 - 1,
+		Height: t.Height,
+	}
+
+	// Prefetch first directory
+	m.projectDetails[m.directories[0]] = m.detailer.GetDetails(m.directories[0])
+	go func() {
+		for _, dir := range m.directories {
+			details := m.detailer.GetDetails(dir)
+			m.projectDetails[dir] = details
+		}
+	}()
+
 	t.Clear()
 
-	listContent := ""
+	t.Add(tui.ANSI_CLEAR_MODIFIER + "\x1b[38;5;45m")
+	m.list.Render(t)
+
+	t.MoveAt(t.Width/2+1, 0)
+	t.Add("\x1b[38;5;45m")
+	m.info.Render(t)
+
+	t.MoveAt(0, t.Height-3)
+	t.Add("\x1b[38;5;45m")
+	m.input.Render(t)
+}
+
+func (m *model) View(t *tui.TUI) {
+	var listBuilder strings.Builder
 	for i, dir := range m.queriedDirectories {
 		if len(dir) == 0 {
 			continue
@@ -61,33 +105,53 @@ func (m *model) View(t *tui.TUI) {
 		project := splitPath[len(splitPath)-1]
 
 		selectedMod := ""
+		listBuilder.WriteString(tui.AnsiMoveTo(3, 3+i))
 		if m.selection == i {
 			selectedMod = ";1"
-			listContent += tui.AnsiMoveTo(3, 3+i)
-			listContent += "\x1b[2;1m" + SELECTED_LINE_INDICATOR + tui.ANSI_CLEAR_MODIFIER
+			listBuilder.WriteString("\x1b[2;1m")
+			listBuilder.WriteString(SELECTED_LINE_INDICATOR)
+			listBuilder.WriteString(tui.ANSI_CLEAR_MODIFIER)
+		} else {
+			listBuilder.WriteString(" ")
 		}
 
-		listContent += tui.AnsiMoveTo(5, 3+i)
-		listContent += fmt.Sprintf("\x1b[2%vm", selectedMod) + path + tui.ANSI_CLEAR_MODIFIER
+		listBuilder.WriteString(tui.AnsiMoveTo(5, 3+i))
+		listBuilder.WriteString(fmt.Sprintf("\x1b[2%vm", selectedMod))
+		listBuilder.WriteString(path)
+		listBuilder.WriteString(tui.ANSI_CLEAR_MODIFIER)
 
-		listContent += tui.AnsiMoveTo(len(path)+6, 3+i)
-		listContent += fmt.Sprintf("\x1b[%vm", selectedMod) + project + tui.ANSI_CLEAR_MODIFIER
+		listBuilder.WriteString(fmt.Sprintf("\x1b[%vm ", selectedMod))
+		listBuilder.WriteString(project)
+		listBuilder.WriteString(tui.ANSI_CLEAR_MODIFIER)
+		listBuilder.WriteString(strings.Repeat(" ", (t.Width/2-6)-(len(project)+len(path))))
 	}
 
-	m.list.Content = tui.ANSI_CLEAR_MODIFIER + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + listContent
-	t.Add(tui.ANSI_CLEAR_MODIFIER + "\x1b[38;5;45m")
-	m.list.Render(t)
+	for i := 0; i < len(m.prevQueriedDirectories)-len(m.queriedDirectories); i++ {
+		listBuilder.WriteString(tui.AnsiMoveTo(3, 3+i+len(m.queriedDirectories)))
+		listBuilder.WriteString(strings.Repeat(" ", (t.Width/2 - 6)))
+	}
+
+	t.Add(tui.ANSI_CLEAR_MODIFIER)
+	t.Add(tui.AnsiMoveDown(1))
+	t.Add(tui.AnsiMoveRight(1))
+	t.Add(listBuilder.String())
 
 	t.MoveAt(t.Width/2+1, 0)
-	t.Add("\x1b[38;5;45m")
-
-	m.info.Content = tui.ANSI_CLEAR_MODIFIER + tui.ANSI_BOLD + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + m.prepareDetails(t)
-	m.info.Render(t)
+	t.Add(tui.AnsiMoveDown(1))
+	t.Add(tui.AnsiMoveRight(1))
+	t.Add(tui.ANSI_CLEAR_MODIFIER)
+	t.Add(tui.ANSI_BOLD)
+	t.Add(tui.AnsiMoveDown(1))
+	t.Add(m.displayDetails(m.queriedDirectories[m.selection], t))
 
 	t.MoveAt(0, t.Height-3)
-	m.input.Content = tui.ANSI_CLEAR_MODIFIER + tui.AnsiMoveDown(1) + tui.AnsiMoveRight(1) + string(m.queryInput)
-	t.Add("\x1b[38;5;45m")
-	m.input.Render(t)
+	t.Add(tui.AnsiMoveDown(1))
+	t.Add(tui.AnsiMoveRight(1))
+	t.Add(tui.ANSI_CLEAR_MODIFIER)
+	t.Add(tui.AnsiMoveDown(1))
+	t.Add(tui.AnsiMoveRight(1))
+	t.Add(string(m.queryInput) + strings.Repeat(" ", m.input.Width-len(m.queryInput)-4))
+	t.Add(tui.AnsiMoveLeft(m.input.Width - len(m.queryInput) - 4))
 
 	t.Flush()
 }
@@ -101,46 +165,62 @@ var detailColors = []string{
 	"213",
 }
 
-func (m *model) prepareDetails(t *tui.TUI) string {
-	if _, exists := m.projectDetails[m.queriedDirectories[m.selection]]; exists {
-		return m.projectDetails[m.queriedDirectories[m.selection]]
+func getCleanTitle(title string, rowMaxLen int) string {
+	if len(title) > rowMaxLen {
+		return string([]byte(title)[:rowMaxLen-4]) + "..."
 	}
 
-	details := m.detailer.GetDetails(m.queriedDirectories[m.selection])
+	return title
+}
 
-	rowMaxLen := t.Width/2 - 8
+func (m *model) displayDetails(dir string, t *tui.TUI) string {
+	y := 3
+	x := t.Width/2 + 3
 
-	cleanedTitle := details.Title
-	if len(cleanedTitle) > rowMaxLen {
-		cleanedTitle = string([]byte(cleanedTitle)[:rowMaxLen]) + "..."
+	details := m.projectDetails[dir]
+	prevDetails := m.projectDetails[m.prevQueriedDirectories[m.previousSelection]]
+	rowMaxLen := t.Width/2 - 4
+
+	prevCleanedTitle := getCleanTitle(prevDetails.Title, rowMaxLen)
+	cleanedTitle := getCleanTitle(details.Title, rowMaxLen)
+
+	rowTitle := cleanedTitle + strings.Repeat(" ", max(0, len(prevCleanedTitle)-len(cleanedTitle)))
+	path := fmt.Sprintf(tui.ANSI_MOVE_TO, y+1, x) + PATH_LABEL + details.Path + strings.Repeat(" ", max(0, len(prevDetails.Path)-len(details.Path)))
+
+	detailsString := fmt.Sprintf(tui.ANSI_MOVE_TO, y, x) + tui.ANSI_BOLD + rowTitle + tui.ANSI_CLEAR_MODIFIER +
+		fmt.Sprintf(tui.ANSI_MOVE_TO, y+1, x) + "\x1b[38;5;243m" + path + tui.ANSI_CLEAR_MODIFIER +
+		fmt.Sprintf(tui.ANSI_MOVE_TO, y+3, x) + tui.ANSI_BOLD + INFO_LABEL + tui.ANSI_CLEAR_MODIFIER
+
+	// TODO: Maybe there's a better way to do this instead of cleaning the entire screen?
+	for i := min(1, len(details.Rest)); i < len(prevDetails.Rest); i++ {
+		detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4+i, x) + strings.Repeat(" ", rowMaxLen)
 	}
-
-	detailsString := tui.ANSI_BOLD + cleanedTitle + tui.AnsiMoveLeft(len(cleanedTitle)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER +
-		"\x1b[38;5;243m" + PATH_LABEL + details.Path + tui.AnsiMoveLeft(len(details.Path)+len(PATH_LABEL)) + tui.AnsiMoveDown(2) + tui.ANSI_CLEAR_MODIFIER +
-		tui.ANSI_BOLD + INFO_LABEL + tui.AnsiMoveLeft(len(INFO_LABEL)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
 
 	if len(details.Rest) == 0 {
-		detailsString += "\x1b[38;5;243m" + INFO_NO_DATA_LABEL
+		detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4, x) + "\x1b[38;5;243m" + INFO_NO_DATA_LABEL + strings.Repeat(" ", rowMaxLen-len(INFO_NO_DATA_LABEL))
 	} else {
 		order := m.detailer.GetRestOrder()
 
+		displayedIndex := 0
 		for i, key := range order {
 			val, exists := details.Rest[key]
 			if !exists {
 				continue
 			}
 
-			detailsString += "\x1b[38;5;" + detailColors[i%len(detailColors)] + "m" + key + val + tui.AnsiMoveLeft(len(key)+len(val)) + tui.AnsiMoveDown(1) + tui.ANSI_CLEAR_MODIFIER
+			detailsContent := key + val + strings.Repeat(" ", rowMaxLen-len(key)-len(val))
+			detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4+displayedIndex, x) + "\x1b[38;5;" + detailColors[i%len(detailColors)] + "m" + detailsContent + tui.ANSI_CLEAR_MODIFIER
+			displayedIndex++
 		}
 	}
-
-	m.projectDetails[m.queriedDirectories[m.selection]] = detailsString
 
 	return detailsString
 }
 
-func (m *model) Update(e tui.Event) bool {
+func (m *model) Update(e tui.Event, t *tui.TUI) bool {
 	result := true
+
+	m.previousSelection = m.selection
 
 	switch typedE := e.(type) {
 	case tui.EventResize:
@@ -151,6 +231,19 @@ func (m *model) Update(e tui.Event) bool {
 
 		m.info.Width = typedE.Width/2 - 1
 		m.info.Height = typedE.Height
+
+		t.Clear()
+
+		t.Add(tui.ANSI_CLEAR_MODIFIER + "\x1b[38;5;45m")
+		m.list.Render(t)
+
+		t.MoveAt(t.Width/2+1, 0)
+		t.Add("\x1b[38;5;45m")
+		m.info.Render(t)
+
+		t.MoveAt(0, t.Height-3)
+		t.Add("\x1b[38;5;45m")
+		m.input.Render(t)
 	case tui.EventKeyPress:
 		result = m.onKeyPress(typedE)
 	}
@@ -158,6 +251,7 @@ func (m *model) Update(e tui.Event) bool {
 	if len(m.queryInput) != 0 {
 		m.queriedDirectories = m.matcher.Match(m.directories, string(m.queryInput))
 	} else {
+		m.prevQueriedDirectories = m.queriedDirectories
 		m.queriedDirectories = m.directories
 	}
 
@@ -252,31 +346,14 @@ func main() {
 		matcher:  matcher,
 		detailer: detailer,
 
-		directories:        directories,
-		queriedDirectories: directories,
-		projectDetails:     make(map[string]string),
+		directories:            directories,
+		queriedDirectories:     directories,
+		prevQueriedDirectories: directories,
+
+		projectDetails: make(map[string]detailers.Details),
 	}
 
 	t := tui.NewTUI(model)
-
-	model.input = tui.Box{
-		Title:  "What project are you working on today?",
-		Width:  t.Width / 2,
-		Height: 4,
-	}
-
-	model.list = tui.Box{
-		Title:  "Projects",
-		Width:  t.Width / 2,
-		Height: t.Height - model.input.Height,
-	}
-
-	model.info = tui.Box{
-		Title:  "Info",
-		Width:  t.Width/2 - 1,
-		Height: t.Height,
-	}
-
 	defer t.Close()
 
 	t.Run()
