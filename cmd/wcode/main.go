@@ -416,5 +416,5 @@ func saveSelectionToDisk(selection string) error {
 
 func gatherProjectPaths() []string {
 	pathsString := os.ExpandEnv(ENV_PROJECT_PATHS)
-	return strings.Split(pathsString, " ")
+	return strings.Split(pathsString, ";")
 }
