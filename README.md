@@ -10,7 +10,6 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 ✅ Project details view \
 ✅ Tmux integration to be ready once navigating in a new session \
 🟥 Handle edge-cases:
-- no tmux
 - no git
 - add blinking cursor???
 

@@ -14,8 +14,11 @@ wcode() {
 
   cd $WORKING_DIR;
 
-  # If inside an existing tmux session do an early return
-  if [ -n "$TMUX" ]; then
+  which tmux 2>/dev/null 1>/dev/null
+  HAS_TMUX=$?
+
+  # If tmux doesn't exist or is inside an existing tmux session do an early return
+  if [ $HAS_TMUX -eq 1 -o -n "$TMUX" ]; then
     return
   fi
 
