@@ -8,11 +8,7 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 ✅ Searching with Linear Search (fallback) \
 ✅ Searching with RipGrep \
 ✅ Project details view \
-✅ Tmux integration to be ready once navigating in a new session \
-🟥 Remove ripgrep dependency \
-🟥 Improve rendering:
-- add blinking cursor???
-
+✅ Tmux integration to be ready once navigating in a new session
 
 ![wcode Showcase](./wcode_showcase.gif)
 
@@ -21,7 +17,7 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 2. Set variable WCODE_PATHS with all the paths (space separated) the tool will look for projects
 3. Profit?!?
 
-Make sure you have tmux, ripgrep & git installed for the best experience
+Make sure you have git and tmux installed for the best experience
 
 ## 🌷 How to use
 Simply run the following command

@@ -2,7 +2,7 @@ package matchers
 
 import (
 	"fmt"
-	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -10,29 +10,23 @@ type MatcherRG struct {
 }
 
 func (m MatcherRG) Match(dirs []string, needle string) []string {
-	echoCmd := exec.Command("echo", strings.Join(dirs, "\n"))
-	rgCmd := exec.Command("rg", fmt.Sprintf("/[^/]*%[1]s[^/]*$|/[^/]*%[1]s[^/]*/[^/]*$", strings.ReplaceAll(needle, " ", ".*")))
+	matches := make([]string, 0, len(dirs))
 
-	cmdPipe, err := echoCmd.StdoutPipe()
+	expr := fmt.Sprintf("/[^/]*%[1]s[^/]*$|/[^/]*%[1]s[^/]*/[^/]*$", strings.ReplaceAll(needle, " ", ".*"))
+	r, err := regexp.Compile(expr)
 	if err != nil {
 		return dirs
 	}
 
-	rgCmd.Stdin = cmdPipe
+	for _, dir := range dirs {
+		if r.Match([]byte(dir)) {
+			matches = append(matches, dir)
+		}
+	}
 
-	echoCmd.Start()
-	res, err := rgCmd.CombinedOutput()
-
-	if err != nil {
+	if len(matches) == 0 {
 		return dirs
 	}
 
-	return strings.Split(string(res[:len(res)-1]), "\n")
-}
-
-func IsMatcherRGAvailable() bool {
-	cmd := exec.Command("rg", "--version")
-	err := cmd.Run()
-
-	return err == nil
+	return matches
 }

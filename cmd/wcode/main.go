@@ -331,14 +331,6 @@ func main() {
 		os.Exit(EXIT_NO_PROJECTS)
 	}
 
-	var matcher matchers.Matcher
-
-	if matchers.IsMatcherRGAvailable() {
-		matcher = matchers.MatcherRG{}
-	} else {
-		matcher = matchers.MatcherLinear{}
-	}
-
 	var detailer detailers.Detailer
 	if detailers.IsDetailerGitAvailable() {
 		detailer = detailers.DetailerGit{}
@@ -347,7 +339,7 @@ func main() {
 	}
 
 	model := &model{
-		matcher:  matcher,
+		matcher:  matchers.MatcherRG{},
 		detailer: detailer,
 
 		directories:            directories,
