@@ -9,12 +9,10 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 ✅ Searching with RipGrep \
 ✅ Project details view \
 ✅ Tmux integration to be ready once navigating in a new session \
-🟥 Handle edge-cases:
-- no git
+🟥 Remove ripgrep dependency \
+🟥 Improve rendering:
 - add blinking cursor???
 
-🟥 Improve rendering \
-🟥 Remove ripgrep dependency
 
 ![wcode Showcase](./wcode_showcase.gif)
 

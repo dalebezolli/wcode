@@ -86,3 +86,8 @@ func (d DetailerGit) GetRestOrder() []string {
 		LABEL_COMMITS_BEHIND,
 	}
 }
+
+func IsDetailerGitAvailable() bool {
+	_, err := exec.LookPath("git")
+	return err == nil
+}

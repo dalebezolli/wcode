@@ -340,7 +340,11 @@ func main() {
 	}
 
 	var detailer detailers.Detailer
-	detailer = detailers.DetailerGit{}
+	if detailers.IsDetailerGitAvailable() {
+		detailer = detailers.DetailerGit{}
+	} else {
+		detailer = detailers.DetailerClassic{}
+	}
 
 	model := &model{
 		matcher:  matcher,
