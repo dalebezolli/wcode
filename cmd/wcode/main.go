@@ -123,12 +123,12 @@ func (m *model) View(t *tui.TUI) {
 		listBuilder.WriteString(fmt.Sprintf("\x1b[%vm ", selectedMod))
 		listBuilder.WriteString(project)
 		listBuilder.WriteString(tui.ANSI_CLEAR_MODIFIER)
-		listBuilder.WriteString(strings.Repeat(" ", (t.Width/2-6)-(len(project)+len(path))))
+		listBuilder.WriteString(strings.Repeat(" ", max(0, (t.Width/2-6)-(len(project)+len(path)))))
 	}
 
 	for i := 0; i < len(m.prevQueriedDirectories)-len(m.queriedDirectories); i++ {
 		listBuilder.WriteString(tui.AnsiMoveTo(3, 3+i+len(m.queriedDirectories)))
-		listBuilder.WriteString(strings.Repeat(" ", (t.Width/2 - 6)))
+		listBuilder.WriteString(strings.Repeat(" ", max(0, (t.Width/2-6))))
 	}
 
 	t.Add(tui.ANSI_CLEAR_MODIFIER)
@@ -150,7 +150,7 @@ func (m *model) View(t *tui.TUI) {
 	t.Add(tui.ANSI_CLEAR_MODIFIER)
 	t.Add(tui.AnsiMoveDown(1))
 	t.Add(tui.AnsiMoveRight(1))
-	t.Add(string(m.queryInput) + strings.Repeat(" ", m.input.Width-len(m.queryInput)-4))
+	t.Add(string(m.queryInput) + strings.Repeat(" ", max(0, m.input.Width-len(m.queryInput)-4)))
 	t.Add(tui.AnsiMoveLeft(m.input.Width - len(m.queryInput) - 4))
 
 	t.Flush()
@@ -167,7 +167,7 @@ var detailColors = []string{
 
 func getCleanTitle(title string, rowMaxLen int) string {
 	if len(title) > rowMaxLen {
-		return string([]byte(title)[:rowMaxLen-4]) + "..."
+		return string([]byte(title)[:max(0, rowMaxLen-4)]) + "..."
 	}
 
 	return title
@@ -179,7 +179,7 @@ func (m *model) displayDetails(dir string, t *tui.TUI) string {
 
 	details := m.projectDetails[dir]
 	prevDetails := m.projectDetails[m.prevQueriedDirectories[m.previousSelection]]
-	rowMaxLen := t.Width/2 - 4
+	rowMaxLen := max(0, t.Width/2-4)
 
 	prevCleanedTitle := getCleanTitle(prevDetails.Title, rowMaxLen)
 	cleanedTitle := getCleanTitle(details.Title, rowMaxLen)
@@ -197,7 +197,7 @@ func (m *model) displayDetails(dir string, t *tui.TUI) string {
 	}
 
 	if len(details.Rest) == 0 {
-		detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4, x) + "\x1b[38;5;243m" + INFO_NO_DATA_LABEL + strings.Repeat(" ", rowMaxLen-len(INFO_NO_DATA_LABEL))
+		detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4, x) + "\x1b[38;5;243m" + INFO_NO_DATA_LABEL + strings.Repeat(" ", max(0, rowMaxLen-len(INFO_NO_DATA_LABEL)))
 	} else {
 		order := m.detailer.GetRestOrder()
 
@@ -208,7 +208,7 @@ func (m *model) displayDetails(dir string, t *tui.TUI) string {
 				continue
 			}
 
-			detailsContent := key + val + strings.Repeat(" ", rowMaxLen-len(key)-len(val))
+			detailsContent := key + val + strings.Repeat(" ", max(0, rowMaxLen-len(key)-len(val)))
 			detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4+displayedIndex, x) + "\x1b[38;5;" + detailColors[i%len(detailColors)] + "m" + detailsContent + tui.ANSI_CLEAR_MODIFIER
 			displayedIndex++
 		}

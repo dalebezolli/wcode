@@ -22,9 +22,6 @@ const countOfMandatoryTopChars int = 6
 const countOfMandatoryTopCharsWithoutLeftSpacer int = countOfMandatoryTopChars - 1
 const countOfMandatoryContainerChars int = 2
 
-const contentLeftPadding int = 1
-const contentTopPadding int = 2
-
 func (b *Box) Render(display *TUI) {
 	if b.Width < 0 || b.Height < 0 {
 		return
@@ -33,7 +30,7 @@ func (b *Box) Render(display *TUI) {
 	lineShift := "\x1b[1B\x1b[" + strconv.Itoa(b.Width) + "D"
 
 	if b.Width-countOfMandatoryTopChars-len(b.Title) < 0 {
-		b.Title = b.Title[:b.Width-countOfMandatoryTopChars]
+		b.Title = b.Title[:max(0, b.Width-countOfMandatoryTopChars)]
 	}
 
 	display.Add(topLeft)
@@ -43,20 +40,20 @@ func (b *Box) Render(display *TUI) {
 	display.Add(" ")
 	display.Add(strings.Repeat(
 		horizontal,
-		b.Width-countOfMandatoryTopCharsWithoutLeftSpacer-len(b.Title),
+		max(0, b.Width-countOfMandatoryTopCharsWithoutLeftSpacer-len(b.Title)),
 	))
 	display.Add(topRight)
 
 	display.Add(strings.Repeat(
 		lineShift+vertical+AnsiMoveRight(b.Width-countOfMandatoryContainerChars)+vertical,
-		b.Height-countOfMandatoryContainerChars,
+		max(0, b.Height-countOfMandatoryContainerChars),
 	))
 
 	display.Add(lineShift)
 	display.Add(bottomLeft)
 	display.Add(strings.Repeat(
 		horizontal,
-		b.Width-countOfMandatoryContainerChars,
+		max(0, b.Width-countOfMandatoryContainerChars),
 	))
 	display.Add(bottomRight)
 }

@@ -3,7 +3,7 @@
 SCRIPT_DIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 
 wcode() {
-  $SCRIPT_DIR/bin/wcode;
+  $SCRIPT_DIR/bin/wcode $@;
   if [ $(echo $?) -ne 0 ]; then
 
     echo "No project selected";
