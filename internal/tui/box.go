@@ -6,10 +6,9 @@ import (
 )
 
 type Box struct {
-	Width   int
-	Height  int
-	Title   string
-	Content string
+	Width  int
+	Height int
+	Title  string
 }
 
 const horizontal = "─"
@@ -60,8 +59,4 @@ func (b *Box) Render(display *TUI) {
 		b.Width-countOfMandatoryContainerChars,
 	))
 	display.Add(bottomRight)
-
-	display.Add(AnsiMoveLeft(b.Width - contentLeftPadding))
-	display.Add(AnsiMoveUp(b.Height - contentTopPadding))
-	// display.Add(b.Content)
 }
