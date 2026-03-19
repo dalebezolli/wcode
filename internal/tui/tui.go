@@ -137,6 +137,7 @@ func (tui *TUI) Close() {
 
 func (tui *TUI) Run() {
 	tui.model.Start(tui)
+	tui.Add(ANSI_CURSOR_BLINKING_BLOCK)
 
 	for {
 		tui.model.View(tui)
@@ -145,7 +146,10 @@ func (tui *TUI) Run() {
 		keepGoing := tui.model.Update(event, tui)
 
 		if !keepGoing {
-			return
+			break
 		}
 	}
+
+	tui.Add(ANSI_CURSOR_DEFAULT)
+	tui.Flush()
 }

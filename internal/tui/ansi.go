@@ -4,6 +4,8 @@ import "fmt"
 
 const ANSI_CLEAR_MODIFIER = "\x1b[m"
 const ANSI_CLEAR_SCREEN = "\x1b[H\x1b[J"
+const ANSI_CURSOR_BLINKING_BLOCK = "\x1b[1 q"
+const ANSI_CURSOR_DEFAULT = "\x1b[0 q"
 
 const ANSI_MOVE_TO = "\x1b[%d;%dH"
 const ANSI_MOVE_UP = "\x1b[%dA"
