@@ -17,6 +17,10 @@ func (m MatcherLinear) Match(dirs []string, needle string) []string {
 		res = append(res, hay)
 	}
 
+	if len(res) == 0 {
+		return dirs
+	}
+
 	return res
 }
 

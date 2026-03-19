@@ -1,4 +1,4 @@
-# wcode - Unf*ck your project folder
+# wcode - Unf*ck project navigation
 
 > For side-project collectors of all ages and genders.
 wcode (which code) provides a simple way to find and navigate to the correct project directory.

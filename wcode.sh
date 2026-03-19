@@ -2,11 +2,31 @@
 
 SCRIPT_DIR=$(cd $(dirname $BASH_SOURCE) && pwd)
 
-wcode() {
-  $SCRIPT_DIR/bin/wcode $@;
-  if [ $(echo $?) -ne 0 ]; then
+# Exit statuses
+EXIT_OK=0
+EXIT_NO_PROJECTS=1
+EXIT_BAD_PATH=2
+EXIT_NO_SELECTION=3
+EXIT_TERMINATED=9
 
+wcode() {
+  SHOULD_RUN_TMUX="true"
+  for arg in "$@"; do
+    if [[ "$arg" == "-n" || "$arg" == "--navigate-only" ]]; then
+      SHOULD_RUN_TMUX="false"
+      break
+    fi
+  done
+
+  $SCRIPT_DIR/bin/wcode $@;
+  WCODE_STATUS=$?
+
+  if [ $WCODE_STATUS -eq $EXIT_NO_SELECTION ]; then
     echo "No project selected";
+  fi
+
+  if [ $WCODE_STATUS -ne $EXIT_OK ]; then
+    return;
   fi
 
   WORKING_DIR=$(cat ~/.config/wcode/selection)
@@ -18,7 +38,7 @@ wcode() {
   HAS_TMUX=$?
 
   # If tmux doesn't exist or is inside an existing tmux session do an early return
-  if [ $HAS_TMUX -eq 1 -o -n "$TMUX" ]; then
+  if [[ $HAS_TMUX -eq 1 || -n "$TMUX" || "$SHOULD_RUN_TMUX" != "true" ]]; then
     return
   fi
 
@@ -30,7 +50,6 @@ wcode() {
     ARGS+=(new-session -s $NAME)
   else
     ARGS+=(attach-session -t $NAME)
-
   fi
 
   if [ $HAS_SESSION -eq 1 -a -e ".tmux.conf" ]; then

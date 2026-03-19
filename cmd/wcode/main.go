@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -9,6 +10,8 @@ import (
 	"github.com/dalebezolli/wcode/internal/matchers"
 	"github.com/dalebezolli/wcode/internal/tui"
 )
+
+const VERSION = "0.1.0"
 
 const DIR_CONFIG = "$HOME/.config/wcode"
 const FILENAME_SELECTION = "selection"
@@ -311,7 +314,72 @@ func (m *model) onKeyPress(e tui.EventKeyPress) bool {
 	return true
 }
 
+const usage = `                     wcode - Unf*ck project navigation
+
+ Usage: wcode [-m | --matcher <matcher_type>] [-d | --detailer <detailer_type>]
+              [-n | --navigate-only] [-h | --help] [-v | --version]
+
+
+ Navigate through your ocean of projects in a simple and effective way.
+
+ Looks for projects under the directories defined in $WCODE_PATHS, a semicolon
+ separated list of directories, and displays them in a list.
+
+ If tmux is installed once a project is selected.
+   - It checks if a session already exists and navigates to it,
+   - otherwise it spins up a new session which runs command from the local
+     .tmux.conf if it exists
+
+ Controls:
+
+  Arrow Up or CTRL-p      - Navigate up the list
+  Arrow Down or CTRL-n    - Navigate down the list
+  Enter                   - Open the selected project
+  Any other key           - Type in the search
+
+ Arguments:
+
+   -h, --help              Displays the help message
+
+   -m, --matcher           Specifies the matcher to be used. Default: regex
+                           Available Options: linear, regex
+
+   -d, --detailer          Specifies the detailer to be used. Default: git
+                           Available Options: git, common
+
+   -n, --navigate-only     Disables tmux navigation.
+
+   -v, --version           Display the version of wcode.`
+
 func main() {
+	flag.Usage = func() {
+		fmt.Println(usage)
+		os.Exit(EXIT_TERMINATED)
+	}
+
+	var flagShowVersion bool
+	flag.BoolVar(&flagShowVersion, "v", false, "Display the version of wcode.")
+	flag.BoolVar(&flagShowVersion, "version", false, "Display the version of wcode.")
+
+	var flagMatcher string
+	flag.StringVar(&flagMatcher, "m", "regex", "Specifies the matcher to be used.")
+	flag.StringVar(&flagMatcher, "matcher", "regex", "Specifies the matcher to be used.")
+
+	var flagDetailer string
+	flag.StringVar(&flagDetailer, "d", "git", "Specifies the detailer to be used.")
+	flag.StringVar(&flagDetailer, "detailer", "git", "Specifies the detailer to be used.")
+
+	var flagNavigateOnly bool
+	flag.BoolVar(&flagNavigateOnly, "n", false, "Disables tmux navigation")
+	flag.BoolVar(&flagNavigateOnly, "navigate-only", false, "Disables tmux navigation")
+
+	flag.Parse()
+
+	if flagShowVersion {
+		fmt.Println(VERSION)
+		os.Exit(EXIT_TERMINATED)
+	}
+
 	err := setupFiles()
 	if err != nil {
 		fmt.Println("An unexpected error occured while initializing the config directory:", err.Error())
@@ -331,16 +399,9 @@ func main() {
 		os.Exit(EXIT_NO_PROJECTS)
 	}
 
-	var detailer detailers.Detailer
-	if detailers.IsDetailerGitAvailable() {
-		detailer = detailers.DetailerGit{}
-	} else {
-		detailer = detailers.DetailerClassic{}
-	}
-
 	model := &model{
-		matcher:  matchers.MatcherRG{},
-		detailer: detailer,
+		matcher:  matchers.NewMatcher(matchers.MatcherType(flagMatcher)),
+		detailer: detailers.NewDetailer(detailers.DetailerType(flagDetailer)),
 
 		directories:            directories,
 		queriedDirectories:     directories,
