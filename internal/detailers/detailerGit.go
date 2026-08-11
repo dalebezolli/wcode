@@ -40,13 +40,13 @@ func (d DetailerGit) GetDetails(path string) Details {
 
 	currentBranchCmd := exec.Command("git", "branch", "--show-current")
 	currentBranchCmd.Dir = path
-	if out, err = currentBranchCmd.Output(); err == nil {
+	if out, err = currentBranchCmd.Output(); err == nil && len(out) != 0 {
 		rest[LABEL_CURRENT_BRANCH] = string(out[:len(out)-1])
 	}
 
 	commitCmd := exec.Command("git", "log", "--oneline", "-n", "1")
 	commitCmd.Dir = path
-	if out, err = commitCmd.Output(); err == nil {
+	if out, err = commitCmd.Output(); err == nil && len(out) != 0 {
 		line := string(out[:len(out)-1])
 
 		if len(line) > 7 {
@@ -60,7 +60,7 @@ func (d DetailerGit) GetDetails(path string) Details {
 
 	statusCmd := exec.Command("git", "rev-list", "--left-right", "--count", "HEAD...@{u}")
 	statusCmd.Dir = path
-	if out, err = statusCmd.Output(); err == nil {
+	if out, err = statusCmd.Output(); err == nil && len(out) != 0 {
 		counts := strings.Fields(string(out[:len(out)-1]))
 
 		if len(counts) == 2 {
