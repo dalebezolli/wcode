@@ -12,6 +12,7 @@ import (
 	"github.com/dalebezolli/wcode/internal/projects"
 	"github.com/dalebezolli/wcode/internal/selection"
 	"github.com/dalebezolli/wcode/internal/tui"
+	"github.com/mattn/go-runewidth"
 )
 
 const VERSION = "0.1.0"
@@ -125,7 +126,7 @@ func (m *model) View(t *tui.TUI) {
 		listBuilder.WriteString(fmt.Sprintf("\x1b[%vm ", selectedMod))
 		listBuilder.WriteString(project)
 		listBuilder.WriteString(tui.ANSI_CLEAR_MODIFIER)
-		listBuilder.WriteString(strings.Repeat(" ", max(0, (t.Width/2-6)-(len(project)+len(path)))))
+		listBuilder.WriteString(strings.Repeat(" ", max(0, (t.Width/2-6)-(runewidth.StringWidth(project)+runewidth.StringWidth(path)))))
 	}
 
 	for i := 0; i < len(m.prevQueriedDirectories)-len(m.queriedDirectories); i++ {
@@ -186,8 +187,8 @@ func (m *model) displayDetails(dir string, t *tui.TUI) string {
 	prevCleanedTitle := getCleanTitle(prevDetails.Title, rowMaxLen)
 	cleanedTitle := getCleanTitle(details.Title, rowMaxLen)
 
-	rowTitle := cleanedTitle + strings.Repeat(" ", max(0, len(prevCleanedTitle)-len(cleanedTitle)))
-	path := fmt.Sprintf(tui.ANSI_MOVE_TO, y+1, x) + PATH_LABEL + details.Path + strings.Repeat(" ", max(0, len(prevDetails.Path)-len(details.Path)))
+	rowTitle := cleanedTitle + strings.Repeat(" ", max(0, runewidth.StringWidth(prevCleanedTitle)-runewidth.StringWidth(cleanedTitle)))
+	path := fmt.Sprintf(tui.ANSI_MOVE_TO, y+1, x) + PATH_LABEL + details.Path + strings.Repeat(" ", max(0, runewidth.StringWidth(prevDetails.Path)-runewidth.StringWidth(details.Path)))
 
 	detailsString := fmt.Sprintf(tui.ANSI_MOVE_TO, y, x) + tui.ANSI_BOLD + rowTitle + tui.ANSI_CLEAR_MODIFIER +
 		fmt.Sprintf(tui.ANSI_MOVE_TO, y+1, x) + "\x1b[38;5;243m" + path + tui.ANSI_CLEAR_MODIFIER +
@@ -199,7 +200,7 @@ func (m *model) displayDetails(dir string, t *tui.TUI) string {
 	}
 
 	if len(details.Rest) == 0 {
-		detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4, x) + "\x1b[38;5;243m" + INFO_NO_DATA_LABEL + strings.Repeat(" ", max(0, rowMaxLen-len(INFO_NO_DATA_LABEL)))
+		detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4, x) + "\x1b[38;5;243m" + INFO_NO_DATA_LABEL + strings.Repeat(" ", max(0, rowMaxLen-runewidth.StringWidth(INFO_NO_DATA_LABEL)))
 	} else {
 		order := m.detailer.GetRestOrder()
 
@@ -210,7 +211,7 @@ func (m *model) displayDetails(dir string, t *tui.TUI) string {
 				continue
 			}
 
-			detailsContent := key + val + strings.Repeat(" ", max(0, rowMaxLen-len(key)-len(val)))
+			detailsContent := key + val + strings.Repeat(" ", max(0, rowMaxLen-runewidth.StringWidth(key)-runewidth.StringWidth(val)))
 			detailsString += fmt.Sprintf(tui.ANSI_MOVE_TO, y+4+displayedIndex, x) + "\x1b[38;5;" + detailColors[i%len(detailColors)] + "m" + detailsContent + tui.ANSI_CLEAR_MODIFIER
 			displayedIndex++
 		}
