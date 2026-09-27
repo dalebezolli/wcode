@@ -14,20 +14,20 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 
 ## 🌱 How to install
 1. Clone the repo.
-2. Set variable WCODE_PATHS with all the paths (space separated) the tool will look for projects
-3. Profit?!?
+2. Run `make build` and put `bin/wcode` on your `PATH`.
+3. Set `WCODE_PATHS` to the project root directories, separated by semicolons.
+4. Add `eval "$(wcode init bash)"` to your `.bashrc`.
 
 Make sure you have git and tmux installed for the best experience
 
 ## 🌷 How to use
-Simply run the following command
+For the current shell, run:
 ```sh
-source ./wcode.sh
+eval "$(wcode init bash)"
 export WCODE_PATHS="/home/user/path/to/projects_root_directory" # if you have more than one projects dir split them with a semicolon (;)
 ```
-*maybe alias the above in your `.bashrc` or anyplace they'd be run on shell startup.*
 
-and then run from anywhere
+Then run from anywhere:
 ```sh
 wcode
 ```

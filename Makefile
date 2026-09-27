@@ -1,7 +1,7 @@
 .PHONY: fmt vet build
 
 build: vet
-	go build -o bin/wcode cmd/wcode/main.go
+	go build -o bin/wcode ./cmd/wcode
 
 vet: fmt
 	go vet ./...
