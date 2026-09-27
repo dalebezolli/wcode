@@ -14,8 +14,6 @@ import (
 	"github.com/dalebezolli/wcode/internal/tui"
 )
 
-const VERSION = "0.1.0"
-
 const (
 	EXIT_OK           = 0
 	EXIT_NO_PROJECTS  = 1
