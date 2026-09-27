@@ -6,10 +6,11 @@ import (
 	"strings"
 )
 
-const directory = "$HOME/.config/wcode"
+const wcodeConfigDir = "wcode"
 
 func dir() string {
-	return os.ExpandEnv(directory)
+	userConfigRootDir, _ := os.UserConfigDir()
+	return os.ExpandEnv(filepath.Join(userConfigRootDir, wcodeConfigDir))
 }
 
 func EnsureDir() error {
