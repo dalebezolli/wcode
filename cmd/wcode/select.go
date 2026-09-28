@@ -18,7 +18,7 @@ const usage = `                     wcode - Unf*ck project navigation
 
  Usage: wcode [-m | --matcher <matcher_type>] [-d | --detailer <detailer_type>]
               [-n | --navigate-only] [-h | --help] [-v | --version]
-        wcode init <bash|zsh>
+        wcode init <bash|zsh|fish>
         wcode selection
 
 
@@ -55,7 +55,7 @@ const usage = `                     wcode - Unf*ck project navigation
 
  Commands:
 
-   init <bash|zsh>         Print the shell integration for Bash or Zsh.
+   init <bash|zsh|fish>    Print the shell integration for Bash, Zsh, or Fish.
    selection               Print the last selected project's path.`
 
 func runSelector(args []string) int {

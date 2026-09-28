@@ -13,7 +13,7 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 
 ## Requirements
 - A Linux, macOS, or WSL environment with an interactive terminal.
-- Supported shells are currently: Bash and Zsh.
+- Supported shells are currently: Bash, Zsh, and Fish.
 - Go 1.23 or newer and `make` to build wcode from source.
 - `WCODE_PATHS` set to one or more existing directories, separated by semicolons. wcode treats each immediate child directory as a project.
 
@@ -57,6 +57,16 @@ eval "$(wcode init zsh)"
 
 Open a new Zsh session or run `source ~/.zshrc`.
 
+### Fish
+Add these lines to `~/.config/fish/config.fish`:
+```fish
+set -gx PATH /path/to/wcode/bin $PATH
+set -gx WCODE_PATHS "$HOME/code;$HOME/work"
+wcode init fish | source
+```
+
+Open a new Fish session or run `source ~/.config/fish/config.fish`.
+
 3. And like this, you're ready to make your project browsing enjoyable again.
 
 ## 🌷 How to use
@@ -66,6 +76,7 @@ export WCODE_PATHS="$HOME/code;$HOME/work"
 eval "$(wcode init bash)"
 ```
 For Zsh, use `eval "$(wcode init zsh)"` instead.
+For Fish, use `wcode init fish | source` instead.
 
 Then run from anywhere:
 ```sh
