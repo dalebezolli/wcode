@@ -34,14 +34,13 @@ To clone the repository and build the binary run:
 
 Otherwise, download the appropriate binary from the [releases section](https://github.com/dalebezolli/wcode/releases).
 
-2. Next, set up the shell you use.
-In the examples below, replace `/path/to/wcode/bin` with the directory containing the `wcode` binary and adjust the project roots to match your machine.
+2. Set up your shell.
 
 ### Bash
 Add these lines to `~/.bashrc`:
 ```sh
 export PATH="/path/to/wcode/bin:$PATH"
-export WCODE_PATHS="$HOME/code;$HOME/work"
+export WCODE_PATHS="/path/to/projects1;/path/to/projects2"
 eval "$(wcode init bash)"
 ```
 
@@ -51,7 +50,7 @@ Open a new Bash session or run `source ~/.bashrc`.
 Add these lines to `~/.zshrc`:
 ```sh
 export PATH="/path/to/wcode/bin:$PATH"
-export WCODE_PATHS="$HOME/code;$HOME/work"
+export WCODE_PATHS="/path/to/projects1;/path/to/projects2"
 eval "$(wcode init zsh)"
 ```
 
@@ -61,7 +60,7 @@ Open a new Zsh session or run `source ~/.zshrc`.
 Add these lines to `~/.config/fish/config.fish`:
 ```fish
 set -gx PATH /path/to/wcode/bin $PATH
-set -gx WCODE_PATHS "$HOME/code;$HOME/work"
+set -gx WCODE_PATHS "/path/to/projects1;/path/to/projects2"
 wcode init fish | source
 ```
 
@@ -70,15 +69,7 @@ Open a new Fish session or run `source ~/.config/fish/config.fish`.
 3. And like this, you're ready to make your project browsing enjoyable again.
 
 ## 🌷 How to use
-For the current shell, run:
-```sh
-export WCODE_PATHS="$HOME/code;$HOME/work"
-eval "$(wcode init bash)"
-```
-For Zsh, use `eval "$(wcode init zsh)"` instead.
-For Fish, use `wcode init fish | source` instead.
-
-Then run from anywhere:
+Now you can run from anywhere you want:
 ```sh
 wcode
 ```
