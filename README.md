@@ -5,26 +5,53 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 
 ## Features
 ✅ Fullscreen TUI display \
-✅ Searching with Linear Search (fallback) \
-✅ Searching with RipGrep \
+✅ Searching with regex and linear matching \
 ✅ Project details view \
 ✅ Tmux integration to be ready once navigating in a new session
 
 ![wcode Showcase](./wcode_showcase.gif)
 
-## 🌱 How to install
-1. Clone the repo.
-2. Run `make build` and put `bin/wcode` on your `PATH`.
-3. Set `WCODE_PATHS` to the project root directories, separated by semicolons.
-4. Add `eval "$(wcode init bash)"` to your `.bashrc`.
+## Requirements
+- A Linux, macOS, or WSL environment with an interactive terminal.
+- Supported shells are currently: bash
+- Go 1.23 or newer and `make` to build wcode from source.
+- `WCODE_PATHS` set to one or more existing directories, separated by semicolons. wcode treats each immediate child directory as a project.
 
-Make sure you have git and tmux installed for the best experience
+And optionally:
+- **Git**: to get project details directly from Git.
+- **Tmux**: to immediately jump in a tmux session with possible configuration.
+
+## 🌱 How to install
+
+1. Either build the binary **or** download the built binary:
+
+To clone the repository and build the binary run:
+   ```sh
+   git clone https://github.com/dalebezolli/wcode.git
+   cd wcode
+   make build
+   ```
+
+Otherwise, download the appropriate binary from the [releases section](https://github.com/dalebezolli/wcode/releases).
+
+2. Add the following to `~/.bashrc`, replacing `/path/to/wcode` with the absolute path to your checkout and adjusting the project roots:
+   ```sh
+   export PATH="/path/to/wcode/bin:$PATH"
+   export WCODE_PATHS="$HOME/code;$HOME/work"
+   eval "$(wcode init bash)"
+   ```
+
+3. Load the updated shell configuration and run wcode:
+   ```sh
+   source ~/.bashrc
+   wcode
+   ```
 
 ## 🌷 How to use
 For the current shell, run:
 ```sh
+export WCODE_PATHS="$HOME/code;$HOME/work"
 eval "$(wcode init bash)"
-export WCODE_PATHS="/home/user/path/to/projects_root_directory" # if you have more than one projects dir split them with a semicolon (;)
 ```
 
 Then run from anywhere:
@@ -32,10 +59,27 @@ Then run from anywhere:
 wcode
 ```
 
-While in the TUI:
+Controls:
 - Arrow Up/Down or CTRL N/P: Move through the list
 - Type anything: Search through the projects
 - Enter: Opens the currently selected project
 
+## 🔌 Integrations
+### Git
+When Git is installed, wcode adds repository information to each project's details: the current branch and latest commit. If the repository has an upstream branch configured, wcode also shows how many commits the local branch is ahead of or behind it.
+
+wcode reads the local Git data and does not fetch from the remote. The ahead and behind counts therefore reflect the last time the repository's remote tracking information was updated.
+If Git is not installed, wcode falls back to basic project details and leaves out the Git information.
+
+### Tmux
+After you select a project, wcode changes the shell's current directory to that project.
+When tmux is available and wcode is not already running inside a tmux session, it looks for a session named after the project. wcode attaches to that session if it exists or creates a new one.
+For a new session, wcode loads the project's `.tmux.conf` when that file exists.
+
+If tmux is not installed, or wcode is already inside tmux, selecting a project still changes the directory and no new tmux session is opened.
+
 ## 🧑‍🌾 How to contribute
 Feel free to suggest any additions or changes by opening a pull request || an issue.
+
+## 📜 License
+Wcode is licensed under the [MIT License](LICENSE).
