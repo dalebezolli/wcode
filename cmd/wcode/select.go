@@ -26,7 +26,7 @@ const usage = `                     wcode - Unf*ck project navigation
 
  Usage: wcode [-m | --matcher <matcher_type>] [-d | --detailer <detailer_type>]
               [-n | --navigate-only] [-h | --help] [-v | --version]
-        wcode init bash
+        wcode init <bash|zsh>
 
 
  Navigate through your ocean of projects in a simple and effective way.
@@ -62,7 +62,7 @@ const usage = `                     wcode - Unf*ck project navigation
 
  Commands:
 
-   init bash               Print Bash integration for eval "$(wcode init bash)".`
+   init <bash|zsh>         Print the shell integration for Bash or Zsh.`
 
 func runSelector(args []string) int {
 	flags := flag.NewFlagSet("wcode", flag.ContinueOnError)

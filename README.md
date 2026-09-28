@@ -13,7 +13,7 @@ wcode (which code) provides a simple way to find and navigate to the correct pro
 
 ## Requirements
 - A Linux, macOS, or WSL environment with an interactive terminal.
-- Supported shells are currently: bash
+- Supported shells are currently: Bash and Zsh.
 - Go 1.23 or newer and `make` to build wcode from source.
 - `WCODE_PATHS` set to one or more existing directories, separated by semicolons. wcode treats each immediate child directory as a project.
 
@@ -34,18 +34,30 @@ To clone the repository and build the binary run:
 
 Otherwise, download the appropriate binary from the [releases section](https://github.com/dalebezolli/wcode/releases).
 
-2. Add the following to `~/.bashrc`, replacing `/path/to/wcode` with the absolute path to your checkout and adjusting the project roots:
-   ```sh
-   export PATH="/path/to/wcode/bin:$PATH"
-   export WCODE_PATHS="$HOME/code;$HOME/work"
-   eval "$(wcode init bash)"
-   ```
+2. Next, set up the shell you use.
+In the examples below, replace `/path/to/wcode/bin` with the directory containing the `wcode` binary and adjust the project roots to match your machine.
 
-3. Load the updated shell configuration and run wcode:
-   ```sh
-   source ~/.bashrc
-   wcode
-   ```
+### Bash
+Add these lines to `~/.bashrc`:
+```sh
+export PATH="/path/to/wcode/bin:$PATH"
+export WCODE_PATHS="$HOME/code;$HOME/work"
+eval "$(wcode init bash)"
+```
+
+Open a new Bash session or run `source ~/.bashrc`.
+
+### Zsh
+Add these lines to `~/.zshrc`:
+```sh
+export PATH="/path/to/wcode/bin:$PATH"
+export WCODE_PATHS="$HOME/code;$HOME/work"
+eval "$(wcode init zsh)"
+```
+
+Open a new Zsh session or run `source ~/.zshrc`.
+
+3. And like this, you're ready to make your project browsing enjoyable again.
 
 ## 🌷 How to use
 For the current shell, run:
@@ -53,6 +65,7 @@ For the current shell, run:
 export WCODE_PATHS="$HOME/code;$HOME/work"
 eval "$(wcode init bash)"
 ```
+For Zsh, use `eval "$(wcode init zsh)"` instead.
 
 Then run from anywhere:
 ```sh
