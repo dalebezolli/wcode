@@ -14,19 +14,12 @@ import (
 	"github.com/dalebezolli/wcode/internal/tui"
 )
 
-const (
-	EXIT_OK           = 0
-	EXIT_NO_PROJECTS  = 1
-	EXIT_BAD_PATH     = 2
-	EXIT_NO_SELECTION = 3
-	EXIT_TERMINATED   = 9
-)
-
 const usage = `                     wcode - Unf*ck project navigation
 
  Usage: wcode [-m | --matcher <matcher_type>] [-d | --detailer <detailer_type>]
               [-n | --navigate-only] [-h | --help] [-v | --version]
         wcode init <bash|zsh>
+        wcode selection
 
 
  Navigate through your ocean of projects in a simple and effective way.
@@ -62,7 +55,8 @@ const usage = `                     wcode - Unf*ck project navigation
 
  Commands:
 
-   init <bash|zsh>         Print the shell integration for Bash or Zsh.`
+   init <bash|zsh>         Print the shell integration for Bash or Zsh.
+   selection               Print the last selected project's path.`
 
 func runSelector(args []string) int {
 	flags := flag.NewFlagSet("wcode", flag.ContinueOnError)

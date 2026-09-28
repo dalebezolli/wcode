@@ -8,19 +8,30 @@ import (
 
 const wcodeConfigDir = "wcode"
 
-func dir() string {
-	userConfigRootDir, _ := os.UserConfigDir()
-	return os.ExpandEnv(filepath.Join(userConfigRootDir, wcodeConfigDir))
+func GetConfigRoot() (string, error) {
+	userConfigRootDir, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return os.ExpandEnv(filepath.Join(userConfigRootDir, wcodeConfigDir)), nil
 }
 
 func EnsureDir() error {
-	return os.MkdirAll(dir(), 0751)
+	root, err := GetConfigRoot()
+	if err != nil {
+		return err
+	}
+	return os.MkdirAll(root, 0751)
 }
 
 func GetProjectRoots() []string {
 	return strings.Split(os.Getenv("WCODE_PATHS"), ";")
 }
 
-func GetSelectionStorePath() string {
-	return filepath.Join(dir(), "selection")
+func GetSelectionStorePath() (string, error) {
+	root, err := GetConfigRoot()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(root, "selection"), nil
 }

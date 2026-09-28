@@ -24,7 +24,7 @@ wcode() {
     return "$_wcode_status"
   fi
 
-  _wcode_dir=$(cat "$HOME/.config/wcode/selection") || return 2
+  _wcode_dir=$(command wcode selection) || return $?
   _wcode_name=${_wcode_dir##*/}
   cd -- "$_wcode_dir" || return
 
