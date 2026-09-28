@@ -93,6 +93,25 @@ For a new session, wcode loads the project's `.tmux.conf` when that file exists.
 
 If tmux is not installed, or wcode is already inside tmux, selecting a project still changes the directory and no new tmux session is opened.
 
+Put a `.tmux.conf` file in a project's root to prepare your workspace when wcode creates a new tmux session. For example, this is the configuration I while developing wcode:
+
+```tmux
+rename-window main
+send-keys "vim ." C-m
+
+new-window -n terminal
+send-keys "git fetch --verbose" C-m
+split-window -h
+
+next-window
+```
+
+This names the first window `main` and opens Vim in it, then creates a `terminal` window, runs `git fetch --verbose`, splits the window, and returns to `main`.
+
+You don't have to do all your work inside the terminal to benefit from tmux. A project config can open VS Code with `code .` and use tmux to automate the boring, repetitive parts of your life as a developer, such as starting Docker containers, development servers, or running any other commands the project needs.
+
+If you want to learn more feel free to start by reading the [tmux Getting Started guide](https://github.com/tmux/tmux/wiki/Getting-Started).
+
 ## 🧑‍🌾 How to contribute
 Feel free to suggest any additions or changes by opening a pull request || an issue.
 
